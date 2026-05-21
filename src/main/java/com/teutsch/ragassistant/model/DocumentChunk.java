@@ -19,6 +19,9 @@ public class DocumentChunk {
     @JoinColumn(name = "document_id")
     private Document document;
 
+    @Column(columnDefinition = "vector(1536)")
+    private float[] embedding;
+
     public DocumentChunk() {}
 
     public Long getId() {
