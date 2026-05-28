@@ -1,5 +1,6 @@
 package com.teutsch.ragassistant.repository;
 
+import com.teutsch.ragassistant.dto.RetrievedChunkDto;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -26,6 +27,38 @@ public class DocumentChunkVectorRepository {
                 """;
 
         jdbcTemplate.update(sql, vectorLiteral, chunkId);
+    }
+
+    public List<RetrievedChunkDto> findMostSimilarChunks(List<Double> queryEmbedding, int limit) {
+        String vectorLiteral = toVectorLiteral(queryEmbedding);
+
+        String sql = """
+                SELECT
+                    id,
+                    document_id,
+                    chunk_index,
+                    content,
+                    1 - (embedding <=> ?::vector) AS similarity
+                FROM document_chunks
+                WHERE embedding IS NOT NULL
+                ORDER BY embedding <=> ?::vector
+                LIMIT ?
+                """;
+
+        return jdbcTemplate.query(
+                sql,
+                (rs, rowNum) ->  new RetrievedChunkDto(
+                        rs.getLong("id"),
+                        rs.getLong("document_id"),
+                        rs.getInt("chunk_index"),
+                        rs.getString("content"),
+                        rs.getDouble("similarity")
+                ),
+                vectorLiteral,
+                vectorLiteral,
+                limit
+        );
+
     }
 
     private String toVectorLiteral(List<Double> embedding) {
